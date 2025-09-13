@@ -9,6 +9,13 @@ from .utils import snake_to_camel
 
 
 class Manager(abc.ABC):
+    """
+    A base class for managers.
+
+    Managers are responsible for providing an interface to a particular type of
+    object in the Snyk API.
+    """
+
     def __init__(self, klass, client, instance=None):
         self.klass = klass
         self.client = client
@@ -41,6 +48,11 @@ class Manager(abc.ABC):
 
     @staticmethod
     def factory(klass, client, instance=None):
+        """
+        A factory for creating managers.
+
+        This is used to ensure that the correct manager is used for a given class.
+        """
         try:
             if isinstance(klass, str):
                 key = klass
@@ -63,10 +75,786 @@ class Manager(abc.ABC):
                 "IntegrationSetting": IntegrationSettingManager,
                 "Tag": TagManager,
                 "IssuePaths": IssuePathsManager,
+                "Target": TargetsManager,
+                "RestIssue": IssuesManager,
+                "Group": GroupManager,
+                "RestUser": UserManager,
+                "Collection": CollectionManager,
+                "ServiceAccount": ServiceAccountManager,
+                "Environment": EnvironmentManager,
+                "Invite": InviteManager,
+                "App": AppManager,
+                "AuditLog": AuditLogManager,
             }[key]
             return manager(klass, client, instance)
         except KeyError:
             raise SnykError
+
+
+class ServiceAccountManager(Manager):
+    """
+    Manages Snyk Service Account objects for a given organization.
+    """
+
+    def all(self) -> List[Any]:
+        """Returns a list of all service accounts for the organization."""
+        if not self.instance:
+            raise SnykError(
+                "ServiceAccountManager must be initialized with an Organization"
+            )
+
+        path = f"orgs/{self.instance.id}/service_accounts"
+        service_accounts_data = self.client.get_rest_pages(path)
+        return [self.klass.from_dict(t) for t in service_accounts_data]
+
+    def get(self, id: str) -> Any:
+        """Returns a single service account by its ID."""
+        if not self.instance:
+            raise SnykError(
+                "ServiceAccountManager must be initialized with an Organization"
+            )
+
+        path = f"orgs/{self.instance.id}/service_accounts/{id}"
+        resp = self.client.get(path, rest=True)
+        service_account_data = resp.json()["data"]
+        return self.klass.from_dict(service_account_data)
+
+    def create(self, name: str, role_id: str, auth_type: str) -> Any:
+        """Creates a new service account."""
+        if not self.instance:
+            raise SnykError(
+                "ServiceAccountManager must be initialized with an Organization"
+            )
+
+        payload = {
+            "data": {
+                "type": "service_account",
+                "attributes": {
+                    "name": name,
+                    "role_id": role_id,
+                    "auth_type": auth_type,
+                },
+            }
+        }
+
+        path = f"orgs/{self.instance.id}/service_accounts"
+        resp = self.client.post(path, payload, rest=True)
+        service_account_data = resp.json()["data"]
+        return self.klass.from_dict(service_account_data)
+
+    def delete(self, id: str) -> bool:
+        """Deletes a service account by its ID."""
+        if not self.instance:
+            raise SnykError(
+                "ServiceAccountManager must be initialized with an Organization"
+            )
+
+        path = f"orgs/{self.instance.id}/service_accounts/{id}"
+        return bool(self.client.delete(path, rest=True))
+
+
+class AppManager(Manager):
+    """
+    Manages Snyk App objects for a given organization.
+    """
+
+    def all(self) -> List[Any]:
+        """Returns a list of all apps for the organization."""
+        if not self.instance:
+            raise SnykError("AppManager must be initialized with an Organization")
+
+        path = f"orgs/{self.instance.id}/apps/creations"
+        apps_data = self.client.get_rest_pages(path)
+        return [self.klass.from_dict(t) for t in apps_data]
+
+    def get(self, id: str) -> Any:
+        """Returns a single app by its ID."""
+        if not self.instance:
+            raise SnykError("AppManager must be initialized with an Organization")
+
+        path = f"orgs/{self.instance.id}/apps/creations/{id}"
+        resp = self.client.get(path, rest=True)
+        app_data = resp.json()["data"]
+        return self.klass.from_dict(app_data)
+
+    def create(self, name: str, redirect_uris: List[str], scopes: List[str]) -> Any:
+        """Creates a new app."""
+        if not self.instance:
+            raise SnykError("AppManager must be initialized with an Organization")
+
+        payload = {
+            "data": {
+                "type": "app",
+                "attributes": {
+                    "name": name,
+                    "redirect_uris": redirect_uris,
+                    "scopes": scopes,
+                },
+            }
+        }
+
+        path = f"orgs/{self.instance.id}/apps/creations"
+        resp = self.client.post(path, payload, rest=True)
+        app_data = resp.json()["data"]
+        return self.klass.from_dict(app_data)
+
+    def delete(self, id: str) -> bool:
+        """Deletes an app by its ID."""
+        if not self.instance:
+            raise SnykError("AppManager must be initialized with an Organization")
+
+        path = f"orgs/{self.instance.id}/apps/creations/{id}"
+        return bool(self.client.delete(path, rest=True))
+
+
+class InviteManager(Manager):
+    """
+    Manages Snyk Invite objects for a given organization.
+    """
+
+    def all(self) -> List[Any]:
+        """Returns a list of all invites for the organization."""
+        if not self.instance:
+            raise SnykError("InviteManager must be initialized with an Organization")
+
+        path = f"orgs/{self.instance.id}/invites"
+        invites_data = self.client.get_rest_pages(path)
+        return [self.klass.from_dict(t) for t in invites_data]
+
+    def create(self, email: str, role: str) -> Any:
+        """Creates a new invite."""
+        if not self.instance:
+            raise SnykError("InviteManager must be initialized with an Organization")
+
+        payload = {
+            "data": {
+                "type": "invite",
+                "attributes": {"email": email, "role": role},
+            }
+        }
+
+        path = f"orgs/{self.instance.id}/invites"
+        resp = self.client.post(path, payload, rest=True)
+        invite_data = resp.json()["data"]
+        return self.klass.from_dict(invite_data)
+
+    def delete(self, id: str) -> bool:
+        """Deletes an invite by its ID."""
+        if not self.instance:
+            raise SnykError("InviteManager must be initialized with an Organization")
+
+        path = f"orgs/{self.instance.id}/invites/{id}"
+        return bool(self.client.delete(path, rest=True))
+
+
+class EnvironmentManager(Manager):
+    """
+    Manages Snyk Environment objects for a given organization.
+    """
+
+    def all(self) -> List[Any]:
+        """Returns a list of all environments for the organization."""
+        if not self.instance:
+            raise SnykError(
+                "EnvironmentManager must be initialized with an Organization"
+            )
+
+        path = f"orgs/{self.instance.id}/cloud/environments"
+        environments_data = self.client.get_rest_pages(path)
+        return [self.klass.from_dict(t) for t in environments_data]
+
+    def get(self, id: str) -> Any:
+        """Returns a single environment by its ID."""
+        if not self.instance:
+            raise SnykError(
+                "EnvironmentManager must be initialized with an Organization"
+            )
+
+        path = f"orgs/{self.instance.id}/cloud/environments/{id}"
+        resp = self.client.get(path, rest=True)
+        environment_data = resp.json()["data"]
+        return self.klass.from_dict(environment_data)
+
+    def create(self, name: str, kind: str, options: dict) -> Any:
+        """Creates a new environment."""
+        if not self.instance:
+            raise SnykError(
+                "EnvironmentManager must be initialized with an Organization"
+            )
+
+        payload = {
+            "data": {
+                "type": "environment",
+                "attributes": {"name": name, "kind": kind, "options": options},
+            }
+        }
+
+        path = f"orgs/{self.instance.id}/cloud/environments"
+        resp = self.client.post(path, payload, rest=True)
+        environment_data = resp.json()["data"]
+        return self.klass.from_dict(environment_data)
+
+    def delete(self, id: str) -> bool:
+        """Deletes an environment by its ID."""
+        if not self.instance:
+            raise SnykError(
+                "EnvironmentManager must be initialized with an Organization"
+            )
+
+        path = f"orgs/{self.instance.id}/cloud/environments/{id}"
+        return bool(self.client.delete(path, rest=True))
+
+    def update(self, id: str, name: str, options: dict) -> Any:
+        """Updates an environment."""
+        if not self.instance:
+            raise SnykError(
+                "EnvironmentManager must be initialized with an Organization"
+            )
+
+        payload = {
+            "data": {
+                "type": "environment",
+                "id": id,
+                "attributes": {"name": name, "options": options},
+            }
+        }
+
+        path = f"orgs/{self.instance.id}/cloud/environments/{id}"
+        resp = self.client.patch(path, payload, rest=True)
+        environment_data = resp.json()["data"]
+        return self.klass.from_dict(environment_data)
+
+
+class AuditLogManager(Manager):
+    """
+    Manages Snyk Audit Log objects for a given organization.
+    """
+
+    def all(self) -> List[Any]:
+        """Returns a list of all audit log entries for the organization."""
+        if not self.instance:
+            raise SnykError("AuditLogManager must be initialized with an Organization")
+
+        path = f"orgs/{self.instance.id}/audit_logs/search"
+        audit_log_data = self.client.get_rest_pages(path)
+        return [self.klass.from_dict(t) for t in audit_log_data]
+
+
+class CollectionManager(Manager):
+    """
+    Manages Snyk Collection objects for a given organization.
+    """
+
+    def all(self) -> List[Any]:
+        """Returns a list of all collections for the organization."""
+        if not self.instance:
+            raise SnykError(
+                "CollectionManager must be initialized with an Organization"
+            )
+
+        path = f"orgs/{self.instance.id}/collections"
+        collections_data = self.client.get_rest_pages(path)
+        return [self.klass.from_dict(t) for t in collections_data]
+
+    def get(self, id: str) -> Any:
+        """Returns a single collection by its ID."""
+        if not self.instance:
+            raise SnykError(
+                "CollectionManager must be initialized with an Organization"
+            )
+
+        path = f"orgs/{self.instance.id}/collections/{id}"
+        resp = self.client.get(path, rest=True)
+        collection_data = resp.json()["data"]
+        return self.klass.from_dict(collection_data)
+
+    def create(self, name: str) -> Any:
+        """Creates a new collection."""
+        if not self.instance:
+            raise SnykError(
+                "CollectionManager must be initialized with an Organization"
+            )
+
+        payload = {
+            "data": {
+                "type": "collection",
+                "attributes": {"name": name},
+            }
+        }
+
+        path = f"orgs/{self.instance.id}/collections"
+        resp = self.client.post(path, payload, rest=True)
+        collection_data = resp.json()["data"]
+        return self.klass.from_dict(collection_data)
+
+
+class UserManager(Manager):
+    """
+    Manages Snyk User objects.
+    """
+
+    def all(self):
+        raise SnykNotImplementedError("Listing all users is not supported.")
+
+    def get(self, id: str) -> Any:
+        """Returns a single user by their ID."""
+        resp = self.client.get(f"users/{id}", rest=True)
+        user_data = resp.json()["data"]
+        return self.klass.from_dict(user_data)
+
+
+class GroupManager(Manager):
+    """
+    Manages Snyk Group objects.
+    """
+
+    def all(self) -> List[Any]:
+        """Returns a list of all groups available to the user."""
+        return [self.klass.from_dict(g) for g in self.client.get_rest_pages("groups")]
+
+    def get(self, id: str) -> Any:
+        """Returns a single group by its ID."""
+        resp = self.client.get(f"groups/{id}", rest=True)
+        group_data = resp.json()["data"]
+        return self.klass.from_dict(group_data)
+
+
+class IssuesManager(Manager):
+    """
+    Manages Snyk Issue objects for a given organization.
+
+    This manager uses the Snyk REST API.
+    """
+
+    def all(self) -> List[Any]:
+        """Returns a list of all issues for the organization."""
+        if not self.instance:
+            raise SnykError("IssuesManager must be initialized with an Organization")
+
+        path = f"orgs/{self.instance.id}/issues"
+        issues_data = self.client.get_rest_pages(path)
+        return [self.klass.from_dict(t) for t in issues_data]
+
+    def get(self, id: str) -> Any:
+        """Returns a single issue by its ID."""
+        if not self.instance:
+            raise SnykError("IssuesManager must be initialized with an Organization")
+
+        path = f"orgs/{self.instance.id}/issues/{id}"
+        resp = self.client.get(path, rest=True)
+        issue_data = resp.json()["data"]
+        return self.klass.from_dict(issue_data)
+
+
+class TargetsManager(Manager):
+    """
+    Manages Snyk Target objects for a given organization.
+
+    Targets are the objects that Snyk scans, such as a repository or a container image.
+    This manager uses the Snyk REST API.
+    """
+
+    def all(self) -> List[Any]:
+        """Returns a list of all targets for the organization."""
+        if not self.instance:
+            raise SnykError("TargetsManager must be initialized with an Organization")
+
+        path = f"orgs/{self.instance.id}/targets"
+        targets_data = self.client.get_rest_pages(path)
+        return [self.klass.from_dict(t) for t in targets_data]
+
+    def get(self, id: str) -> Any:
+        """Returns a single target by its ID."""
+        if not self.instance:
+            raise SnykError("TargetsManager must be initialized with an Organization")
+
+        path = f"orgs/{self.instance.id}/targets/{id}"
+        resp = self.client.get(path, rest=True)
+        target_data = resp.json()["data"]
+        return self.klass.from_dict(target_data)
+
+
+class ServiceAccountManager(Manager):
+    """
+    Manages Snyk Service Account objects for a given organization.
+    """
+
+    def all(self) -> List[Any]:
+        """Returns a list of all service accounts for the organization."""
+        if not self.instance:
+            raise SnykError(
+                "ServiceAccountManager must be initialized with an Organization"
+            )
+
+        path = f"orgs/{self.instance.id}/service_accounts"
+        service_accounts_data = self.client.get_rest_pages(path)
+        return [self.klass.from_dict(t) for t in service_accounts_data]
+
+    def get(self, id: str) -> Any:
+        """Returns a single service account by its ID."""
+        if not self.instance:
+            raise SnykError(
+                "ServiceAccountManager must be initialized with an Organization"
+            )
+
+        path = f"orgs/{self.instance.id}/service_accounts/{id}"
+        resp = self.client.get(path, rest=True)
+        service_account_data = resp.json()["data"]
+        return self.klass.from_dict(service_account_data)
+
+    def create(self, name: str, role_id: str, auth_type: str) -> Any:
+        """Creates a new service account."""
+        if not self.instance:
+            raise SnykError(
+                "ServiceAccountManager must be initialized with an Organization"
+            )
+
+        payload = {
+            "data": {
+                "type": "service_account",
+                "attributes": {
+                    "name": name,
+                    "role_id": role_id,
+                    "auth_type": auth_type,
+                },
+            }
+        }
+
+        path = f"orgs/{self.instance.id}/service_accounts"
+        resp = self.client.post(path, payload, rest=True)
+        service_account_data = resp.json()["data"]
+        return self.klass.from_dict(service_account_data)
+
+    def delete(self, id: str) -> bool:
+        """Deletes a service account by its ID."""
+        if not self.instance:
+            raise SnykError(
+                "ServiceAccountManager must be initialized with an Organization"
+            )
+
+        path = f"orgs/{self.instance.id}/service_accounts/{id}"
+        return bool(self.client.delete(path, rest=True))
+
+
+class AppManager(Manager):
+    """
+    Manages Snyk App objects for a given organization.
+    """
+
+    def all(self) -> List[Any]:
+        """Returns a list of all apps for the organization."""
+        if not self.instance:
+            raise SnykError("AppManager must be initialized with an Organization")
+
+        path = f"orgs/{self.instance.id}/apps/creations"
+        apps_data = self.client.get_rest_pages(path)
+        return [self.klass.from_dict(t) for t in apps_data]
+
+    def get(self, id: str) -> Any:
+        """Returns a single app by its ID."""
+        if not self.instance:
+            raise SnykError("AppManager must be initialized with an Organization")
+
+        path = f"orgs/{self.instance.id}/apps/creations/{id}"
+        resp = self.client.get(path, rest=True)
+        app_data = resp.json()["data"]
+        return self.klass.from_dict(app_data)
+
+    def create(self, name: str, redirect_uris: List[str], scopes: List[str]) -> Any:
+        """Creates a new app."""
+        if not self.instance:
+            raise SnykError("AppManager must be initialized with an Organization")
+
+        payload = {
+            "data": {
+                "type": "app",
+                "attributes": {
+                    "name": name,
+                    "redirect_uris": redirect_uris,
+                    "scopes": scopes,
+                },
+            }
+        }
+
+        path = f"orgs/{self.instance.id}/apps/creations"
+        resp = self.client.post(path, payload, rest=True)
+        app_data = resp.json()["data"]
+        return self.klass.from_dict(app_data)
+
+    def delete(self, id: str) -> bool:
+        """Deletes an app by its ID."""
+        if not self.instance:
+            raise SnykError("AppManager must be initialized with an Organization")
+
+        path = f"orgs/{self.instance.id}/apps/creations/{id}"
+        return bool(self.client.delete(path, rest=True))
+
+
+class InviteManager(Manager):
+    """
+    Manages Snyk Invite objects for a given organization.
+    """
+
+    def all(self) -> List[Any]:
+        """Returns a list of all invites for the organization."""
+        if not self.instance:
+            raise SnykError("InviteManager must be initialized with an Organization")
+
+        path = f"orgs/{self.instance.id}/invites"
+        invites_data = self.client.get_rest_pages(path)
+        return [self.klass.from_dict(t) for t in invites_data]
+
+    def create(self, email: str, role: str) -> Any:
+        """Creates a new invite."""
+        if not self.instance:
+            raise SnykError("InviteManager must be initialized with an Organization")
+
+        payload = {
+            "data": {
+                "type": "invite",
+                "attributes": {"email": email, "role": role},
+            }
+        }
+
+        path = f"orgs/{self.instance.id}/invites"
+        resp = self.client.post(path, payload, rest=True)
+        invite_data = resp.json()["data"]
+        return self.klass.from_dict(invite_data)
+
+    def delete(self, id: str) -> bool:
+        """Deletes an invite by its ID."""
+        if not self.instance:
+            raise SnykError("InviteManager must be initialized with an Organization")
+
+        path = f"orgs/{self.instance.id}/invites/{id}"
+        return bool(self.client.delete(path, rest=True))
+
+
+class EnvironmentManager(Manager):
+    """
+    Manages Snyk Environment objects for a given organization.
+    """
+
+    def all(self) -> List[Any]:
+        """Returns a list of all environments for the organization."""
+        if not self.instance:
+            raise SnykError(
+                "EnvironmentManager must be initialized with an Organization"
+            )
+
+        path = f"orgs/{self.instance.id}/cloud/environments"
+        environments_data = self.client.get_rest_pages(path)
+        return [self.klass.from_dict(t) for t in environments_data]
+
+    def get(self, id: str) -> Any:
+        """Returns a single environment by its ID."""
+        if not self.instance:
+            raise SnykError(
+                "EnvironmentManager must be initialized with an Organization"
+            )
+
+        path = f"orgs/{self.instance.id}/cloud/environments/{id}"
+        resp = self.client.get(path, rest=True)
+        environment_data = resp.json()["data"]
+        return self.klass.from_dict(environment_data)
+
+    def create(self, name: str, kind: str, options: dict) -> Any:
+        """Creates a new environment."""
+        if not self.instance:
+            raise SnykError(
+                "EnvironmentManager must be initialized with an Organization"
+            )
+
+        payload = {
+            "data": {
+                "type": "environment",
+                "attributes": {"name": name, "kind": kind, "options": options},
+            }
+        }
+
+        path = f"orgs/{self.instance.id}/cloud/environments"
+        resp = self.client.post(path, payload, rest=True)
+        environment_data = resp.json()["data"]
+        return self.klass.from_dict(environment_data)
+
+    def delete(self, id: str) -> bool:
+        """Deletes an environment by its ID."""
+        if not self.instance:
+            raise SnykError(
+                "EnvironmentManager must be initialized with an Organization"
+            )
+
+        path = f"orgs/{self.instance.id}/cloud/environments/{id}"
+        return bool(self.client.delete(path, rest=True))
+
+    def update(self, id: str, name: str, options: dict) -> Any:
+        """Updates an environment."""
+        if not self.instance:
+            raise SnykError(
+                "EnvironmentManager must be initialized with an Organization"
+            )
+
+        payload = {
+            "data": {
+                "type": "environment",
+                "id": id,
+                "attributes": {"name": name, "options": options},
+            }
+        }
+
+        path = f"orgs/{self.instance.id}/cloud/environments/{id}"
+        resp = self.client.patch(path, payload, rest=True)
+        environment_data = resp.json()["data"]
+        return self.klass.from_dict(environment_data)
+
+
+class AuditLogManager(Manager):
+    """
+    Manages Snyk Audit Log objects for a given organization.
+    """
+
+    def all(self) -> List[Any]:
+        """Returns a list of all audit log entries for the organization."""
+        if not self.instance:
+            raise SnykError("AuditLogManager must be initialized with an Organization")
+
+        path = f"orgs/{self.instance.id}/audit_logs/search"
+        audit_log_data = self.client.get_rest_pages(path)
+        return [self.klass.from_dict(t) for t in audit_log_data]
+
+
+class CollectionManager(Manager):
+    """
+    Manages Snyk Collection objects for a given organization.
+    """
+
+    def all(self) -> List[Any]:
+        """Returns a list of all collections for the organization."""
+        if not self.instance:
+            raise SnykError(
+                "CollectionManager must be initialized with an Organization"
+            )
+
+        path = f"orgs/{self.instance.id}/collections"
+        collections_data = self.client.get_rest_pages(path)
+        return [self.klass.from_dict(t) for t in collections_data]
+
+    def get(self, id: str) -> Any:
+        """Returns a single collection by its ID."""
+        if not self.instance:
+            raise SnykError(
+                "CollectionManager must be initialized with an Organization"
+            )
+
+        path = f"orgs/{self.instance.id}/collections/{id}"
+        resp = self.client.get(path, rest=True)
+        collection_data = resp.json()["data"]
+        return self.klass.from_dict(collection_data)
+
+    def create(self, name: str) -> Any:
+        """Creates a new collection."""
+        if not self.instance:
+            raise SnykError(
+                "CollectionManager must be initialized with an Organization"
+            )
+
+        payload = {
+            "data": {
+                "type": "collection",
+                "attributes": {"name": name},
+            }
+        }
+
+        path = f"orgs/{self.instance.id}/collections"
+        resp = self.client.post(path, payload, rest=True)
+        collection_data = resp.json()["data"]
+        return self.klass.from_dict(collection_data)
+
+
+class UserManager(Manager):
+    """
+    Manages Snyk User objects.
+    """
+
+    def all(self):
+        raise SnykNotImplementedError("Listing all users is not supported.")
+
+    def get(self, id: str) -> Any:
+        """Returns a single user by their ID."""
+        resp = self.client.get(f"users/{id}", rest=True)
+        user_data = resp.json()["data"]
+        return self.klass.from_dict(user_data)
+
+
+class GroupManager(Manager):
+    """
+    Manages Snyk Group objects.
+    """
+
+    def all(self) -> List[Any]:
+        """Returns a list of all groups available to the user."""
+        return [self.klass.from_dict(g) for g in self.client.get_rest_pages("groups")]
+
+    def get(self, id: str) -> Any:
+        """Returns a single group by its ID."""
+        resp = self.client.get(f"groups/{id}", rest=True)
+        group_data = resp.json()["data"]
+        return self.klass.from_dict(group_data)
+
+
+class IssuesManager(Manager):
+    """
+    Manages Snyk Issue objects for a given organization.
+
+    This manager uses the Snyk REST API.
+    """
+
+    def all(self) -> List[Any]:
+        """Returns a list of all issues for the organization."""
+        if not self.instance:
+            raise SnykError("IssuesManager must be initialized with an Organization")
+
+        path = f"orgs/{self.instance.id}/issues"
+        issues_data = self.client.get_rest_pages(path)
+        return [self.klass.from_dict(t) for t in issues_data]
+
+    def get(self, id: str) -> Any:
+        """Returns a single issue by its ID."""
+        if not self.instance:
+            raise SnykError("IssuesManager must be initialized with an Organization")
+
+        path = f"orgs/{self.instance.id}/issues/{id}"
+        resp = self.client.get(path, rest=True)
+        issue_data = resp.json()["data"]
+        return self.klass.from_dict(issue_data)
+
+
+class TargetsManager(Manager):
+    """
+    Manages Snyk Target objects for a given organization.
+
+    Targets are the objects that Snyk scans, such as a repository or a container image.
+    This manager uses the Snyk REST API.
+    """
+
+    def all(self) -> List[Any]:
+        """Returns a list of all targets for the organization."""
+        if not self.instance:
+            raise SnykError("TargetsManager must be initialized with an Organization")
+
+        path = f"orgs/{self.instance.id}/targets"
+        targets_data = self.client.get_rest_pages(path)
+        return [self.klass.from_dict(t) for t in targets_data]
+
+    def get(self, id: str) -> Any:
+        """Returns a single target by its ID."""
+        if not self.instance:
+            raise SnykError("TargetsManager must be initialized with an Organization")
+
+        path = f"orgs/{self.instance.id}/targets/{id}"
+        resp = self.client.get(path, rest=True)
+        target_data = resp.json()["data"]
+        return self.klass.from_dict(target_data)
 
 
 class DictManager(Manager):
@@ -139,7 +927,15 @@ class TagManager(Manager):
 
 
 class ProjectManager(Manager):
-    def _rest_to_v1_response_format(self, project):
+    def _rest_to_v1_response_format(self, project: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Transforms a project dictionary from the Snyk REST API format to the
+        legacy Snyk API v1 format.
+
+        This is a compatibility layer to ensure that consumers of the Project model
+        get a consistent data structure, regardless of which API version the data
+        was fetched from.
+        """
         attributes = project.get("attributes", {})
         settings = attributes.get("settings", {})
         recurring_tests = settings.get("recurring_tests", {})
@@ -210,12 +1006,10 @@ class ProjectManager(Manager):
                 params["expand"] = "target"
 
             # And lastly, make the API call
-            resp = self.client.get(
-                path,
-                version="2023-06-19",
-                params=params,
-                exclude_version=True if next_url else False,
-            )
+            if next_url:
+                resp = self.client.get(next_url, params, rest=True)
+            else:
+                resp = self.client.get(path, params, rest=True)
 
             if "data" in resp.json():
                 # Process projects in current response

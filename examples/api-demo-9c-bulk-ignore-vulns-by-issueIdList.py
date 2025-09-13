@@ -7,26 +7,38 @@ import urllib3
 from snyk import SnykClient
 from utils import get_default_token_path, get_token
 
+
 def parse_command_line_args():
     parser = argparse.ArgumentParser(description="Snyk API Examples")
-    parser.add_argument("--orgId", type=str,
-                        help="The Snyk Organisation Id", required=True)
+    parser.add_argument(
+        "--orgId", type=str, help="The Snyk Organisation Id", required=True
+    )
     # Store issueId as list (--issueIdList=SNYK-JS-HANDLEBARS-173692,SNYK-JS-JSYAML-174129 as example)
-    parser.add_argument("--issueIdList", type=str,
-                        help="The Snyk Issue IdList", required=True)
-    parser.add_argument("--reasonType", type=str,
-                        help="Ignore Reason Type", required=True)
-    parser.add_argument("--expirationTime", type=str,
-                        help="Optional. Expiration time of ignore. e.g. yyyy-mm-dd or yyyy-mm-ddThh:mm:ss.aaaZ",)
-    parser.add_argument("--reason", type=str,
-                        help="Optional. Reason for ignoring e.g. \"We do not use this library.\"",)
+    parser.add_argument(
+        "--issueIdList", type=str, help="The Snyk Issue IdList", required=True
+    )
+    parser.add_argument(
+        "--reasonType", type=str, help="Ignore Reason Type", required=True
+    )
+    parser.add_argument(
+        "--expirationTime",
+        type=str,
+        help="Optional. Expiration time of ignore. e.g. yyyy-mm-dd or yyyy-mm-ddThh:mm:ss.aaaZ",
+    )
+    parser.add_argument(
+        "--reason",
+        type=str,
+        help='Optional. Reason for ignoring e.g. "We do not use this library."',
+    )
     args = parser.parse_args()
     return args
+
+
 snyk_token_path = get_default_token_path()
 snyk_token = get_token(snyk_token_path)
 args = parse_command_line_args()
 org_id = args.orgId
-issue_ids = args.issueIdList.split(',') # split issue list to run the loop
+issue_ids = args.issueIdList.split(",")  # split issue list to run the loop
 reason_type = args.reasonType
 time = args.expirationTime
 reason = args.reason
@@ -68,21 +80,21 @@ for proj in client.organizations.get(org_id).projects.all():
     r = client.post(url, None)
     # Converts JSON to a python dict
     parsed_input = r.json()
-    print (parsed_input)
+    print(parsed_input)
     issues = parsed_input["issues"]
     print("List the Vulnerbilities")
-    print (issues["vulnerabilities"])
+    print(issues["vulnerabilities"])
     for i in issues["vulnerabilities"]:
         # HERE
         if i["id"] in issue_ids:
             values_object = {
                 "ignorePath": "",
                 "reasonType": reason_type,
-                "disregardIfFixable": False
+                "disregardIfFixable": False,
             }
             if reason is not None:
                 values_object["reason"] = reason
             if expires is not None:
                 values_object["expires"] = expires
-            api_url = "org/%s/project/%s/ignore/%s" % (org_id, proj.id , i["id"])
+            api_url = "org/%s/project/%s/ignore/%s" % (org_id, proj.id, i["id"])
             r2 = client.post(api_url, values_object)

@@ -1,0 +1,16 @@
+{
+  "jsonapi": {
+    "version": "1.0"
+  },
+  "data": {
+    "id": "f9fec29a-d288-40d9-a019-cedf825e6efb",
+    "type": "collection",
+    "attributes": {
+      "name": "My Collection"
+    },
+    "relationships": {}
+  },
+  "links": {
+    "self": "/orgs/39ddc762-b1b9-41ce-ab42-defbe4575bd6/collections/f9fec29a-d288-40d9-a019-cedf825e6efb?version=2023-09-12"
+  }
+}

@@ -12,7 +12,10 @@ def parse_command_line_args():
         "--orgId", type=str, help="The Snyk Organisation Id", required=True
     )
     parser.add_argument(
-        "--projectId", type=str, help="The project ID in Snyk, use 'all' to execute for all projects.", required=True
+        "--projectId",
+        type=str,
+        help="The project ID in Snyk, use 'all' to execute for all projects.",
+        required=True,
     )
     parser.add_argument(
         "--pullRequestTestEnabled",
@@ -37,10 +40,9 @@ client = SnykClient(snyk_token)
 projects = client.organizations.get(org_id).projects.all()
 
 github_projects = [
-    {"id": p.id, "name": p.name}
-    for p in projects
-    if p.origin == "github"
+    {"id": p.id, "name": p.name} for p in projects if p.origin == "github"
 ]
+
 
 def get_project_by_id(projects, project_id):
     for project in projects:
@@ -52,7 +54,9 @@ for proj in github_projects:
     if project_id == proj["id"] or project_id == "all":
         print("%s | %s" % (proj["id"], proj["name"]))
         print("  - updating project settings...")
-        resp = get_project_by_id(projects, proj["id"]).settings.update(**project_settings)
+        resp = get_project_by_id(projects, proj["id"]).settings.update(
+            **project_settings
+        )
 
         if resp:
             print("  - success: %s" % (proj["id"]))

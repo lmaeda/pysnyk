@@ -1,0 +1,17 @@
+{
+  "jsonapi": {
+    "version": "1.0"
+  },
+  "data": {
+    "id": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+    "type": "user",
+    "attributes": {
+      "name": "Current User",
+      "username": "current.user",
+      "email": "current.user@snyk.io"
+    }
+  },
+  "links": {
+    "self": "/self?version=2024-04-22"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "jsonapi": {
+    "version": "1.0"
+  },
+  "data": [
+    {
+      "id": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+      "type": "user",
+      "attributes": {
+        "email": "member1@example.com",
+        "name": "Member One",
+        "username": "member.one"
+      },
+      "relationships": {
+        "role": {
+          "data": {
+            "id": "f60ff965-6889-4db2-8c86-0285d62f35ab",
+            "type": "org_role"
+          }
+        }
+      }
+    },
+    {
+      "id": "b2c3d4e5-f6a7-8901-2345-67890abcdef0",
+      "type": "user",
+      "attributes": {
+        "email": "member2@example.com",
+        "name": "Member Two",
+        "username": "member.two"
+      },
+      "relationships": {
+        "role": {
+          "data": {
+            "id": "f60ff965-6889-4db2-8c86-0285d62f35ab",
+            "type": "org_role"
+          }
+        }
+      }
+    }
+  ],
+  "links": {
+    "self": "/orgs/39ddc762-b1b9-41ce-ab42-defbe4575bd6/memberships?version=2024-08-25&limit=10"
+  }
+}

@@ -4,19 +4,21 @@
   },
   "data": [
     {
+      "id": "331ede0a-de94-456f-b788-166caeca58bf",
       "type": "group",
-      "id": "36863d40-ba29-491f-af63-7a1a7d79e411",
       "attributes": {
-        "name": "Customer Success Engineering"
+        "name": "My Group"
       }
     },
     {
+      "id": "59d6d97e-3106-4ebb-b608-352fad9c5b34",
       "type": "group",
-      "id": "164f8e6d-ea58-45ef-a638-259cc0fe90d4",
       "attributes": {
-        "name": "Goof Ltd (Enterprise)"
+        "name": "ACME Inc."
       }
     }
   ],
-  "links": {}
+  "links": {
+    "self": "/groups?version=2023-01-30~beta&limit=10"
+  }
 }

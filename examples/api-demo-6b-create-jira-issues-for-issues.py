@@ -22,7 +22,14 @@ def parse_command_line_args():
 
 
 def create_jira_issue(project, issue, jira_project, issuetype):
-    return project.jira_issues.create(issue.id, {"project": {"id": jira_project}, "issuetype": {"id": issuetype}, "summary": "%s - %s" % (project.name, issue.title)})
+    return project.jira_issues.create(
+        issue.id,
+        {
+            "project": {"id": jira_project},
+            "issuetype": {"id": issuetype},
+            "summary": "%s - %s" % (project.name, issue.title),
+        },
+    )
 
 
 snyk_token_path = get_default_token_path()

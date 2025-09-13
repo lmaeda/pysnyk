@@ -1,0 +1,18 @@
+
+{
+  "jsonapi": {
+    "version": "1.0"
+  },
+  "data": {
+    "id": "e7a4c0a0-7e87-4917-803b-76958d485a45",
+    "type": "target",
+    "attributes": {
+      "displayName": "snyk-labs/pysnyk",
+      "isPrivate": false,
+      "url": "https://github.com/snyk-labs/pysnyk"
+    }
+  },
+  "links": {
+    "self": "/orgs/39ddc762-b1b9-41ce-ab42-defbe4575bd6/targets/e7a4c0a0-7e87-4917-803b-76958d485a45?version=2024-01-24"
+  }
+}

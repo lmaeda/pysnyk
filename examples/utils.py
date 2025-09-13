@@ -18,9 +18,13 @@ def get_token(token_file_path):
             return token
     except FileNotFoundError as fnfe:
         print("Snyk auth token not found at %s" % path)
-        print("Run `snyk auth` (see https://github.com/snyk/snyk#installation) or manually create this file with your token.")
+        print(
+            "Run `snyk auth` (see https://github.com/snyk/snyk#installation) or manually create this file with your token."
+        )
         raise fnfe
     except KeyError as ke:
         print("Snyk auth token file is not properly formed: %s" % path)
-        print("Run `snyk auth` (see https://github.com/snyk/snyk#installation) or manually create this file with your token.")
+        print(
+            "Run `snyk auth` (see https://github.com/snyk/snyk#installation) or manually create this file with your token."
+        )
         raise ke

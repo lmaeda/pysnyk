@@ -24,7 +24,9 @@ def list_of_dictionaries_to_map(input_list, key_field, data_fields_list=None):
 
 def get_project_tree(snyk_token, org_id, project_id):
     client = SnykClient(snyk_token)
-    res_dep_graph = client.organizations.get(org_id).projects.get(project_id).dependency_graph
+    res_dep_graph = (
+        client.organizations.get(org_id).projects.get(project_id).dependency_graph
+    )
     print(res_dep_graph)
 
     print("\nPackages (Flat List):")
@@ -57,7 +59,9 @@ def get_project_tree(snyk_token, org_id, project_id):
         }
 
     # Get licenses for all dependencies in the project
-    lst_res_license = client.organizations.get(org_id).projects.get(project_id).dependencies.all()
+    lst_res_license = (
+        client.organizations.get(org_id).projects.get(project_id).dependencies.all()
+    )
 
     # make into a lookup table by package_id
     package_id_to_license_info_map = {}  # package_id -> { license info }
@@ -70,11 +74,16 @@ def get_project_tree(snyk_token, org_id, project_id):
     print(package_id_to_license_info_map)
 
     # Get the license issues and then enhance package_id_to_license_info_map with the license classification or none
-    issues = client.organizations.get(org_id).projects.get(project_id).issueset.all().issues
+    issues = (
+        client.organizations.get(org_id).projects.get(project_id).issueset.all().issues
+    )
     license_issues_list = issues.licenses
 
     # map to lookup table
-    license_issues_lookup_map = {license_issue.id: license_issue.severity for license_issue in license_issues_list}
+    license_issues_lookup_map = {
+        license_issue.id: license_issue.severity
+        for license_issue in license_issues_list
+    }
 
     for pkgId, licensesList in package_id_to_license_info_map.items():
         for l in licensesList:
@@ -120,9 +129,10 @@ def get_project_tree(snyk_token, org_id, project_id):
 
     # Now create a new structure based on node_lookup_map which is a deeply nested structure of the same data
     project_structured_tree = {}
-    
 
-    def get_node_to_append(node_id, base_path):  # might make sense to rename get_dependencies
+    def get_node_to_append(
+        node_id, base_path
+    ):  # might make sense to rename get_dependencies
         obj = node_lookup_map[node_id]
         pkgId = obj["pkgId"]
         print("node_id: %s" % pkgId)

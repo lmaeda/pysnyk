@@ -9,13 +9,31 @@ from retry.api import retry_call
 from .__version__ import __version__
 from .errors import SnykHTTPError, SnykNotImplementedError
 from .managers import Manager
-from .models import Organization, Project
+from .models import (
+    App,
+    AuditLog,
+    Collection,
+    Environment,
+    Group,
+    Invite,
+    Organization,
+    Project,
+    RestUser,
+    ServiceAccount,
+)
 from .utils import cleanup_path
 
 logger = logging.getLogger(__name__)
 
 
 class SnykClient(object):
+    """
+    A client for interacting with the Snyk API.
+
+    This client handles authentication and provides methods for making requests
+    to both the Snyk API v1 and the newer Snyk REST API.
+    """
+
     API_URL = "https://api.snyk.io/v1"
     REST_API_URL = "https://api.snyk.io/rest"
     USER_AGENT = "pysnyk/%s" % __version__
@@ -65,7 +83,11 @@ class SnykClient(object):
         params: object = None,
         json: object = None,
     ) -> requests.Response:
+        """
+        A generic helper for making requests, used by the other methods.
 
+        Includes the retry logic.
+        """
         if params and json:
             resp = method(
                 url, headers=headers, params=params, json=json, verify=self.verify
@@ -82,14 +104,41 @@ class SnykClient(object):
             raise SnykHTTPError(resp)
         return resp
 
-    def post(self, path: str, body: Any, headers: dict = {}) -> requests.Response:
-        url = f"{self.api_url}/{path}"
+    def post(
+        self, path: str, body: Any, headers: dict = {}, rest: bool = False
+    ) -> requests.Response:
+        """
+        Makes a POST request to the Snyk API.
+
+        :param path: The path for the API endpoint.
+        :param body: The request body.
+        :param headers: Additional headers for the request.
+        :param rest: If True, targets the REST API. Otherwise, targets the v1 API.
+        :return: A requests.Response object.
+        """
+        if rest:
+            base_url = self.rest_api_url
+            params = {}
+            if self.version:
+                params["version"] = self.version
+            # REST API may use a different content type, which can be passed in via headers
+            post_headers = self.api_post_headers.copy()
+            fkwargs = {
+                "json": body,
+                "headers": {**post_headers, **headers},
+                "params": params,
+            }
+        else:
+            base_url = self.api_url
+            fkwargs = {"json": body, "headers": {**self.api_post_headers, **headers}}
+
+        url = f"{base_url}/{cleanup_path(path)}"
         logger.debug(f"POST: {url}")
 
         resp = retry_call(
             self.request,
             fargs=[requests.post, url],
-            fkwargs={"json": body, "headers": {**self.api_post_headers, **headers}},
+            fkwargs=fkwargs,
             tries=self.tries,
             delay=self.delay,
             backoff=self.backoff,
@@ -103,14 +152,41 @@ class SnykClient(object):
 
         return resp
 
-    def put(self, path: str, body: Any, headers: dict = {}) -> requests.Response:
-        url = "%s/%s" % (self.api_url, path)
-        logger.debug("PUT: %s" % url)
+    def put(
+        self, path: str, body: Any, headers: dict = {}, rest: bool = False
+    ) -> requests.Response:
+        """
+        Makes a PUT request to the Snyk API.
+
+        :param path: The path for the API endpoint.
+        :param body: The request body.
+        :param headers: Additional headers for the request.
+        :param rest: If True, targets the REST API. Otherwise, targets the v1 API.
+        :return: A requests.Response object.
+        """
+        if rest:
+            base_url = self.rest_api_url
+            params = {}
+            if self.version:
+                params["version"] = self.version
+            # REST API may use a different content type, which can be passed in via headers
+            post_headers = self.api_post_headers.copy()
+            fkwargs = {
+                "json": body,
+                "headers": {**post_headers, **headers},
+                "params": params,
+            }
+        else:
+            base_url = self.api_url
+            fkwargs = {"json": body, "headers": {**self.api_post_headers, **headers}}
+
+        url = f"{base_url}/{cleanup_path(path)}"
+        logger.debug(f"PUT: {url}")
 
         resp = retry_call(
             self.request,
             fargs=[requests.put, url],
-            fkwargs={"json": body, "headers": {**self.api_post_headers, **headers}},
+            fkwargs=fkwargs,
             tries=self.tries,
             delay=self.delay,
             backoff=self.backoff,
@@ -127,59 +203,48 @@ class SnykClient(object):
         path: str,
         params: dict = None,
         version: str = None,
-        exclude_version: bool = False,
-        exclude_params: bool = False,
+        rest: bool = False,
     ) -> requests.Response:
         """
-        Rest (formerly v3) Compatible Snyk Client, assumes the presence of Version, either set in the client
-        or called in this method means that we're talking to a rest API endpoint and will ensure the
-        params are encoded properly with the version.
+        Makes a GET request to the Snyk API.
 
-        Since certain endpoints can exist only in certain versions, being able to override the
-        client version with each GET is necessary
-
-        Returns a standard requests Response object
+        :param path: The path for the API endpoint.
+        :param params: A dictionary of query parameters.
+        :param version: (Legacy) The REST API version to use. If provided, implies a REST call.
+        :param rest: If True, forces the call to use the REST API.
+        :return: A requests.Response object.
         """
+        # For backward compatibility, if version is passed, assume it's a REST call.
+        if version:
+            rest = True
 
         path = cleanup_path(path)
-        if version:
-            # When calling a "next page" link, it fails if a version parameter is appended on to the URL - this is a
-            # workaround to prevent that from happening...
-            if exclude_version:
-                url = f"{self.rest_api_url}/{path}"
-            else:
-                url = f"{self.rest_api_url}/{path}?version={version}"
-        else:
-            url = f"{self.api_url}/{path}"
+        if not params:
+            params = {}
 
-        if (params or self.version) and not exclude_params:
-
-            if not params:
-                params = {}
-
-            # we use the presence of version to determine if we are REST or not
-            if "version" not in params.keys() and self.version and not exclude_version:
+        if rest:
+            base_url = self.rest_api_url
+            # Only add version if it's not part of a paginated URL
+            if "version" not in params and "version" not in path:
                 params["version"] = version or self.version
 
             # Python Bools are True/False, JS Bools are true/false
-            # Snyk REST API is strictly case sensitive at the moment
-
             for k, v in params.items():
                 if isinstance(v, bool):
                     params[k] = str(v).lower()
 
-            # the limit is returned in the url, and if two limits are passed
-            # the API interprets as an array and throws an error
-            if "limit" in parse_qs(urlparse(path).query):
-                params.pop("limit", None)
-
-            debug_url = f"{url}&{urllib.parse.urlencode(params)}"
+            # Don't pass params if the path is a fully-formed paginated URL
+            if "snyk.io" in path:
+                url = path
+                fkwargs = {"headers": self.api_headers}
+            else:
+                url = f"{base_url}/{path}"
+                fkwargs = {"headers": self.api_headers, "params": params}
+        else:  # v1 API call
+            url = f"{self.api_url}/{path}"
             fkwargs = {"headers": self.api_headers, "params": params}
-        else:
-            debug_url = url
-            fkwargs = {"headers": self.api_headers}
 
-        logger.debug(f"GET: {debug_url}")
+        logger.debug(f"GET: {url} with params {params}")
 
         resp = retry_call(
             self.request,
@@ -196,14 +261,31 @@ class SnykClient(object):
 
         return resp
 
-    def delete(self, path: str) -> requests.Response:
-        url = f"{self.api_url}/{path}"
+    def delete(self, path: str, rest: bool = False) -> requests.Response:
+        """
+        Makes a DELETE request to the Snyk API.
+
+        :param path: The path for the API endpoint.
+        :param rest: If True, targets the REST API. Otherwise, targets the v1 API.
+        :return: A requests.Response object.
+        """
+        if rest:
+            base_url = self.rest_api_url
+            params = {}
+            if self.version:
+                params["version"] = self.version
+            fkwargs = {"headers": self.api_headers, "params": params}
+        else:
+            base_url = self.api_url
+            fkwargs = {"headers": self.api_headers}
+
+        url = f"{base_url}/{cleanup_path(path)}"
         logger.debug(f"DELETE: {url}")
 
         resp = retry_call(
             self.request,
             fargs=[requests.delete, url],
-            fkwargs={"headers": self.api_headers},
+            fkwargs=fkwargs,
             tries=self.tries,
             delay=self.delay,
             backoff=self.backoff,
@@ -223,7 +305,7 @@ class SnykClient(object):
         This collects the "data" list from the first response and then appends the
         any further "data" lists if a next link is found in the links field.
         """
-        first_page_response = self.get(path, params)
+        first_page_response = self.get(path, params, rest=True)
         page_data = first_page_response.json()
         return_data = page_data["data"]
 
@@ -246,10 +328,8 @@ class SnykClient(object):
                 # If there is no next url, break out of the loop
                 break
 
-            # The next url comes back fully formed (i.e. with all the params already set, so no need to do it here)
-            next_page_response = self.get(
-                next_url, {}, exclude_version=True, exclude_params=True
-            )
+            # The next url comes back fully formed, so we pass it directly.
+            next_page_response = self.get(next_url, rest=True)
             page_data = next_page_response.json()
 
             # Verify that response contains data
@@ -279,16 +359,27 @@ class SnykClient(object):
     def projects(self) -> Manager:
         return Manager.factory(Project, self)
 
-    # https://snyk.docs.apiary.io/#reference/general/the-api-details/get-notification-settings
-    # https://snyk.docs.apiary.io/#reference/users/user-notification-settings/modify-notification-settings
-    def notification_settings(self):
-        raise SnykNotImplementedError  # pragma: no cover
+    @property
+    def groups(self) -> Manager:
+        return Manager.factory(Group, self)
 
-    # https://snyk.docs.apiary.io/#reference/groups/organisations-in-groups/create-a-new-organisation-in-the-group
-    # https://snyk.docs.apiary.io/#reference/0/list-members-in-a-group/list-all-members-in-a-group
-    # https://snyk.docs.apiary.io/#reference/0/members-in-an-organisation-of-a-group/add-a-member-to-an-organisation-from-another-organisation-in-the-group
-    def groups(self):
-        raise SnykNotImplementedError  # pragma: no cover
+    @property
+    def users(self) -> Manager:
+        return Manager.factory(RestUser, self)
+
+    @property
+    def me(self) -> "RestUser":
+        """The current user."""
+        resp = self.get("self", rest=True)
+        return RestUser.from_dict(resp.json()["data"])
+
+    @property
+    def audit_logs(self) -> Manager:
+        return Manager.factory("AuditLog", self)
+
+    @property
+    def integrations(self) -> Manager:
+        return Manager.factory("Integration", self)
 
     # https://snyk.docs.apiary.io/#reference/reporting-api/issues/get-list-of-issues
     def issues(self):

@@ -159,6 +159,95 @@ class IssueRelations:
 
 
 @dataclass
+class Target(DataClassJSONMixin):
+    id: str
+    type: str
+    attributes: Dict[str, Any]
+    relationships: Dict[str, Any]
+
+
+@dataclass
+class RestIssue(DataClassJSONMixin):
+    id: str
+    type: str
+    attributes: Dict[str, Any]
+    relationships: Dict[str, Any]
+
+
+@dataclass
+class Group(DataClassJSONMixin):
+    id: str
+    type: str
+    attributes: Dict[str, Any]
+
+
+@dataclass
+class RestUser(DataClassJSONMixin):
+    id: str
+    type: str
+    attributes: Dict[str, Any]
+
+
+@dataclass
+class Collection(DataClassJSONMixin):
+    id: str
+    type: str
+    attributes: Dict[str, Any]
+    relationships: Dict[str, Any]
+
+
+@dataclass
+class ServiceAccount(DataClassJSONMixin):
+    id: str
+    type: str
+    attributes: Dict[str, Any]
+
+
+@dataclass
+class Environment(DataClassJSONMixin):
+    id: str
+    type: str
+    attributes: Dict[str, Any]
+
+
+@dataclass
+class Invite(DataClassJSONMixin):
+    id: str
+    type: str
+    attributes: Dict[str, Any]
+
+
+@dataclass
+class App(DataClassJSONMixin):
+    id: str
+    type: str
+    attributes: Dict[str, Any]
+
+
+@dataclass
+class AuditLog(DataClassJSONMixin):
+    id: str
+    type: str
+    attributes: Dict[str, Any]
+
+
+@dataclass
+class RestUser(DataClassJSONMixin):
+    id: str
+    type: str
+    attributes: Dict[str, Any]
+
+
+@dataclass
+class Collection(DataClassJSONMixin):
+    id: str
+    type: str
+    attributes: Dict[str, Any]
+    meta: Dict[str, Any]
+    relationships: Dict[str, Any]
+
+
+@dataclass
 class Organization(DataClassJSONMixin):
     name: str
     id: str
@@ -190,6 +279,38 @@ class Organization(DataClassJSONMixin):
     @property
     def integrations(self) -> Manager:
         return Manager.factory(Integration, self.client, self)
+
+    @property
+    def targets(self) -> Manager:
+        return Manager.factory("Target", self.client, self)
+
+    @property
+    def issues(self) -> Manager:
+        return Manager.factory("RestIssue", self.client, self)
+
+    @property
+    def collections(self) -> Manager:
+        return Manager.factory("Collection", self.client, self)
+
+    @property
+    def service_accounts(self) -> Manager:
+        return Manager.factory("ServiceAccount", self.client, self)
+
+    @property
+    def environments(self) -> Manager:
+        return Manager.factory("Environment", self.client, self)
+
+    @property
+    def invitations(self) -> Manager:
+        return Manager.factory(Invite, self.client, self)
+
+    @property
+    def apps(self) -> Manager:
+        return Manager.factory("App", self.client, self)
+
+    @property
+    def audit_logs(self) -> Manager:
+        return Manager.factory("AuditLog", self.client, self)
 
     """
     Imports need integrations, but exposing a high-level API that
@@ -478,18 +599,9 @@ class License(DataClassJSONMixin):
 @dataclass
 class Member(DataClassJSONMixin):
     id: str
-    username: str
-    name: str
-    email: str
-    role: str
-
-    # https://snyk.docs.apiary.io/#reference/organisations/manage-roles-in-organisation/update-a-member-in-the-organisation
-    def update_role(self, role: str):
-        raise SnykNotImplementedError  # pragma: no cover
-
-    # https://snyk.docs.apiary.io/#reference/organisations/manage-roles-in-organisation/remove-a-member-from-the-organisation
-    def delete(self):
-        raise SnykNotImplementedError  # pragma: no cover
+    type: str
+    attributes: Dict[str, Any]
+    relationships: Dict[str, Any]
 
 
 @dataclass
@@ -669,7 +781,7 @@ class Project(DataClassJSONMixin):
                 selected_user = self.owningUserId
             user_response = self.organization.client.get(
                 f"orgs/{self.organization.id}/users/{selected_user}",
-                version="2023-05-29~beta",
+                version="2024-10-15",
             )
             user = user_response.json()
             user_data = user.get("data", {})

@@ -12,16 +12,23 @@ from utils import get_default_token_path, get_token
 
 def parse_command_line_args():
     parser = argparse.ArgumentParser(description="Snyk API Examples")
-    parser.add_argument("--orgId", type=str,
-                        help="The Snyk Organisation Id", required=True)
-    parser.add_argument("--issueId", type=str,
-                        help="The Snyk Issue Id", required=True)
-    parser.add_argument("--reasonType", type=str,
-                        help="Ignore Reason Type", required=True)
-    parser.add_argument("--expirationTime", type=str,
-                        help="Optional. Expiration time of ignore. e.g. yyyy-mm-dd or yyyy-mm-ddThh:mm:ss.aaaZ",)
-    parser.add_argument("--reason", type=str,
-                        help="Optional. Reason for ignoring e.g. \"We do not use this library.\"",)
+    parser.add_argument(
+        "--orgId", type=str, help="The Snyk Organisation Id", required=True
+    )
+    parser.add_argument("--issueId", type=str, help="The Snyk Issue Id", required=True)
+    parser.add_argument(
+        "--reasonType", type=str, help="Ignore Reason Type", required=True
+    )
+    parser.add_argument(
+        "--expirationTime",
+        type=str,
+        help="Optional. Expiration time of ignore. e.g. yyyy-mm-dd or yyyy-mm-ddThh:mm:ss.aaaZ",
+    )
+    parser.add_argument(
+        "--reason",
+        type=str,
+        help='Optional. Reason for ignoring e.g. "We do not use this library."',
+    )
     args = parser.parse_args()
 
     return args
@@ -80,18 +87,18 @@ for proj in client.organizations.get(org_id).projects.all():
 
     # Converts JSON to a python dict
     parsed_input = r.json()
-    print (parsed_input)
+    print(parsed_input)
     issues = parsed_input["issues"]
 
     print("List the Vulnerbilities")
-    print (issues["vulnerabilities"])
+    print(issues["vulnerabilities"])
 
     for i in issues["vulnerabilities"]:
         if i["id"] == issue_id:
             values_object = {
                 "ignorePath": "",
                 "reasonType": reason_type,
-                "disregardIfFixable": False
+                "disregardIfFixable": False,
             }
             if reason is not None:
                 values_object["reason"] = reason

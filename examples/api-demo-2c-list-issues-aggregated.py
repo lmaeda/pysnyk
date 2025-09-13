@@ -57,7 +57,9 @@ def output_excel(vulns, output_path):
 
 
 client = SnykClient(snyk_token)
-issue_set = client.organizations.get(org_id).projects.get(project_id).issueset_aggregated.all()
+issue_set = (
+    client.organizations.get(org_id).projects.get(project_id).issueset_aggregated.all()
+)
 
 lst_output = []
 for v in issue_set.issues:
@@ -71,7 +73,7 @@ for v in issue_set.issues:
 
     # print CVSS assigners if exists
     for detail in v.issueData.cvssDetails:
-        print("    %s score: %s" % (detail['assigner'], detail['cvssV3BaseScore']))
+        print("    %s score: %s" % (detail["assigner"], detail["cvssV3BaseScore"]))
 
     # for the excel output
     new_output_item = {
